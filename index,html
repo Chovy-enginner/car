@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D 賽車小遊戲</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #info {
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    canvas {
+      border: 4px solid #fff;
+      border-radius: 8px;
+      background: #333;
+    }
+  </style>
+</head>
+<body>
+
+<div id="info">
+  操控方式：<b>↑ / W</b> 加速 | <b>↓ / S</b> 煞車/倒車 | <b>← → / A D</b> 轉向
+</div>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// 賽車狀態
+const car = {
+  x: 400,
+  y: 500,
+  width: 20,
+  height: 36,
+  angle: -Math.PI / 2, // 朝上
+  speed: 0,
+  maxSpeed: 7,
+  acc: 0.15,
+  friction: 0.96,
+  turnSpeed: 0.05
+};
+
+// 按鍵監聽
+const keys = {};
+window.addEventListener('keydown', e => keys[e.key] = true);
+window.addEventListener('keyup', e => keys[e.key] = false);
+
+// 簡單跑道外邊界與內障礙
+function drawTrack() {
+  // 草地背景
+  ctx.fillStyle = '#2d8a4e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 外圈瀝青跑道
+  ctx.fillStyle = '#555';
+  ctx.beginPath();
+  ctx.arc(400, 300, 260, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 內圈草地圓弧
+  ctx.fillStyle = '#2d8a4e';
+  ctx.beginPath();
+  ctx.arc(400, 300, 140, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 起跑線
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.moveTo(400, 440);
+  ctx.lineTo(400, 560);
+  ctx.stroke();
+}
+
+function update() {
+  // 前進 / 後退
+  if (keys['ArrowUp'] || keys['w'] || keys['W']) car.speed += car.acc;
+  if (keys['ArrowDown'] || keys['s'] || keys['S']) car.speed -= car.acc * 0.6;
+
+  // 阻力與最大速限制
+  car.speed *= car.friction;
+  if (car.speed > car.maxSpeed) car.speed = car.maxSpeed;
+  if (car.speed < -car.maxSpeed * 0.4) car.speed = -car.maxSpeed * 0.4;
+
+  // 轉向（車輛有速度時才能轉向）
+  if (Math.abs(car.speed) > 0.1) {
+    const dir = car.speed > 0 ? 1 : -1;
+    if (keys['ArrowLeft'] || keys['a'] || keys['A']) car.angle -= car.turnSpeed * dir;
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) car.angle += car.turnSpeed * dir;
+  }
+
+  // 位置更新
+  car.x += Math.cos(car.angle) * car.speed;
+  car.y += Math.sin(car.angle) * car.speed;
+
+  // 地圖邊界碰撞
+  if (car.x < 10) car.x = 10;
+  if (car.x > canvas.width - 10) car.x = canvas.width - 10;
+  if (car.y < 10) car.y = 10;
+  if (car.y > canvas.height - 10) car.y = canvas.height - 10;
+}
+
+function drawCar() {
+  ctx.save();
+  ctx.translate(car.x, car.y);
+  ctx.rotate(car.angle + Math.PI / 2); // 轉向繪製
+
+  // 車身
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillRect(-car.width / 2, -car.height / 2, car.width, car.height);
+
+  // 擋風玻璃
+  ctx.fillStyle = '#111';
+  ctx.fillRect(-car.width / 2 + 2, -car.height / 2 + 6, car.width - 4, 8);
+
+  ctx.restore();
+}
+
+function gameLoop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawTrack();
+  update();
+  drawCar();
+  requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
